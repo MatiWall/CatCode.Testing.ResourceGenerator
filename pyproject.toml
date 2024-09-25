@@ -7,10 +7,12 @@ readme = "README.md"
 packages = [{include = "catcode"}]
 
 [tool.poetry.dependencies]
-python = "^3.8"
+python = "^3.11"
 pyyaml = "^6.0.2"
 git-python = "^1.0.3"
 requests = "^2.32.3"
+datamodel-code-generator = "^0.26.0"
+polyfactory = "^2.17.0"
 
 
 [build-system]

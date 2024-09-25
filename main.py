@@ -1,4 +1,7 @@
 import logging
+
+from generator.mocker import build_resource_classes, resource_mocker
+
 logger = logging.getLogger(__name__)
 import subprocess
 from pathlib import Path
@@ -36,7 +39,11 @@ def insert_files_to_etcd(files):
 
     for file in files: # all logic is left for the CoreAI
         resp = requests.post('etcd_host: "http://localhost:8000"', json=file)
-        logger.info(str(resp.json()))
+
+        if resp.status_code == 200:
+            logger.info(f'Success fully inserted {file} to etcd')
+
+
 
 
 
@@ -54,7 +61,12 @@ def main():
         )
     files = read_files(CLONE_REPO / 'kinds')
 
-    insert_files_to_etcd(files)
+    #insert_files_to_etcd(files)
+    resources = build_resource_classes(files)
+    resources = resource_mocker(resources)
+
+    insert_files_to_etcd(resources)
+
 
 if __name__ == "__main__":
     main()
