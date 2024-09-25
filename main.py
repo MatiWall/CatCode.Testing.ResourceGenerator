@@ -65,7 +65,7 @@ def main():
     resources = build_resource_classes(files)
     resources = resource_mocker(resources)
 
-    insert_files_to_etcd(resources)
+    insert_files_to_etcd([r.model_dump() for r in resources])
 
 
 if __name__ == "__main__":

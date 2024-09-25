@@ -57,7 +57,9 @@ def build_resource_classes(resource_definitions: list[dict]):
         objects.append({
             'name': resource_name,
             'kind': resource_definition['spec']['names']['kind'],
-            'path': path
+            'path': path,
+            'group': resource_definition['spec']['group'],
+            'version': resource_definition['spec']['versions'][-1]['name']
         })
 
     return objects
@@ -72,11 +74,13 @@ def resource_mocker(objects):
         Resource = getattr(module, object['kind'])
 
         class FullResource(Resource):
+            apiVersion: str = Field(default_factory=lambda: f"{object['group']}/{object['version']}")
+            kind: str = Field(default_factory=lambda: f"{object['kind']}")
             metadata: Metadata
 
         class Factory(ModelFactory[FullResource]):
             __model__ = FullResource
-
+            __use_defaults__ = True
 
         instances = [Factory.build() for _ in range(n)]
         resources.extend(instances)
