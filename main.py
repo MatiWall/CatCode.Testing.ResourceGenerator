@@ -38,7 +38,7 @@ def read_files(directory):
 def insert_files_to_etcd(files):
 
     for file in files: # all logic is left for the CoreAI
-        resp = requests.post('etcd_host: "http://localhost:8000"', json=file)
+        resp = requests.post("http://core-api:8000/resource/v1", json=file)
 
         if resp.status_code == 200:
             logger.info(f'Success fully inserted {file} to etcd')
