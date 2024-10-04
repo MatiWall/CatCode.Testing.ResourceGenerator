@@ -1,4 +1,6 @@
+import json
 import logging
+from enum import Enum
 
 from generator.mocker import build_resource_classes, resource_mocker
 
@@ -10,7 +12,7 @@ import git
 import os
 import yaml
 
-from settings import BASE_DIR
+from settings import BASE_DIR, config
 
 
 # Clone the repository
@@ -34,14 +36,26 @@ def read_files(directory):
             objects.append(obj)
     return objects
 
+# Custom JSON encoder for Enums
+class EnumEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, Enum):
+            return obj.value  # Serialize enum as its value
+        return super().default(obj)
 
 def insert_files_to_etcd(files):
 
     for file in files: # all logic is left for the CoreAI
-        resp = requests.post("http://core-api:8000/resource/v1", json=file)
+        resp = requests.post(
+            f"{config.core_api}/resource/v1",
+            data=json.dumps(file, cls=EnumEncoder),
+            headers={'Content-Type': 'application/json'}
+        )
 
         if resp.status_code == 200:
-            logger.info(f'Success fully inserted {file} to etcd')
+            logger.info(f'Success fully inserted {file} to etcd with key {resp.json()["key"]}')
+        else:
+            logger.warning(f'Failed to insert file {file} with error: \n {resp.content}')
 
 
 
@@ -61,7 +75,6 @@ def main():
         )
     files = read_files(CLONE_REPO / 'kinds')
 
-    #insert_files_to_etcd(files)
     resources = build_resource_classes(files)
     resources = resource_mocker(resources)
 

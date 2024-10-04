@@ -14,11 +14,6 @@ from polyfactory.factories.pydantic_factory import ModelFactory
 
 class Metadata(BaseModel):
     name: str = Field(..., description="The name of the object. Must be a DNS subdomain-compliant string.")
-    labels: Optional[Dict[str, str]] = Field(None, description="Key-Value pairs used to organize and select subsets of objects.")
-    annotations: Optional[Dict[str, str]] = Field(None, description="Arbitrary metadata for external tools or additional information.")
-    uid: Optional[str] = Field(default_factory=lambda: str(uuid.uuid4()), description="A UUID that uniquely identifies the resource.")
-    creationTimestamp: Optional[datetime] = Field(None, description="Timestamp representing when the object was created.")
-    updatedTimestamp: Optional[datetime] = Field(None, description="Timestamp representing when the object was updated.")
 
     class Config:
         schema_extra = {
@@ -30,7 +25,7 @@ def build_resource_classes(resource_definitions: list[dict]):
     objects = []
     for resource_definition in resource_definitions:
 
-        spec_schema = resource_definition['spec']['versions'][-1]['schema']['properties']
+        spec_schema = resource_definition['spec']['versions'][-1]['schema']
 
         resource_name = resource_definition['spec']['names']['singular']
 
@@ -38,8 +33,7 @@ def build_resource_classes(resource_definitions: list[dict]):
             "$id": f"{resource_name}.json",
             "$schema": "http://json-schema.org/draft-07/schema#",
             "title": resource_definition['spec']['names']['kind'],
-            "type": "object",
-            "properties": spec_schema
+            **spec_schema
         }
 
         path = Path('./tmp/schemas').resolve() / f"{resource_name}.json"

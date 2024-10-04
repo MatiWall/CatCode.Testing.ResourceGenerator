@@ -6,6 +6,15 @@ authors = ["Matias Wallenius <MatiWall@live.dk>"]
 readme = "README.md"
 packages = [{include = "catcode"}]
 
+[[tool.poetry.source]]
+name = "private"
+url = "http://pypi.mw.local"
+priority = "primary"
+
+[[tool.poetry.source]]
+name = "PyPI"
+priority = "primary"
+
 [tool.poetry.dependencies]
 python = "^3.11"
 pyyaml = "^6.0.2"
@@ -13,6 +22,7 @@ git-python = "^1.0.3"
 requests = "^2.32.3"
 datamodel-code-generator = "^0.26.0"
 polyfactory = "^2.17.0"
+extensions-opentelemetry = "^0.2.0"
 
 
 [build-system]
