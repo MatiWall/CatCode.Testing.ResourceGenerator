@@ -1,4 +1,5 @@
 import json
+import random
 import subprocess
 import time
 import uuid
@@ -22,7 +23,7 @@ class Metadata(BaseModel):
 
 
 def build_resource_classes(resource_definitions: list[dict]):
-    objects = []
+    objects = {}
     for resource_definition in resource_definitions:
 
         spec_schema = resource_definition['spec']['versions'][-1]['schema']
@@ -48,35 +49,80 @@ def build_resource_classes(resource_definitions: list[dict]):
         )
         print(result.stderr)
 
-        objects.append({
+        objects[resource_name] = {
             'name': resource_name,
             'kind': resource_definition['spec']['names']['kind'],
             'path': path,
             'group': resource_definition['spec']['group'],
             'version': resource_definition['spec']['versions'][-1]['name']
-        })
+        }
 
     return objects
 
-def resource_mocker(objects):
+def create_factory(object):
+    module = importlib.import_module(f'tmp.models.{object["name"]}')
+
+    Resource = getattr(module, object['kind'])
+
+    class FullResource(Resource):
+        apiVersion: str = Field(default_factory=lambda: f"{object['group']}/{object['version']}")
+        kind: str = Field(default_factory=lambda: f"{object['kind']}")
+        metadata: Metadata
+
+    class Factory(ModelFactory[FullResource]):
+        __model__ = FullResource
+        __use_defaults__ = True
+
+    return Factory
+
+def component_mocker(SystemFactory, ApplicationFactory, ComponentFactory):
     n = 100
+    ns = 10
 
     resources = []
-    for object in objects:
-        module = importlib.import_module(f'tmp.models.{object["name"]}')
 
-        Resource = getattr(module, object['kind'])
+    for _ in range(n):
 
-        class FullResource(Resource):
-            apiVersion: str = Field(default_factory=lambda: f"{object['group']}/{object['version']}")
-            kind: str = Field(default_factory=lambda: f"{object['kind']}")
-            metadata: Metadata
+        system = SystemFactory.build()
+        resources.append(system)
+        for i in range(random.randint(1, ns)):
+            application = ApplicationFactory.build()
+            application.spec.system = system.metadata.name
+            resources.append(application)
+            for j in range(random.randint(1, ns)):
+                component = ComponentFactory.build()
+                component.spec.system = system.metadata.name
+                component.spec.application = application.metadata.name
 
-        class Factory(ModelFactory[FullResource]):
-            __model__ = FullResource
-            __use_defaults__ = True
-
-        instances = [Factory.build() for _ in range(n)]
-        resources.extend(instances)
+                resources.append(component)
     return resources
 
+# def resource_mocker(objects):
+#     n = 100
+#
+#     resources = []
+#     for object in objects.values():
+#         module = importlib.import_module(f'tmp.models.{object["name"]}')
+#
+#         Resource = getattr(module, object['kind'])
+#
+#         class FullResource(Resource):
+#             apiVersion: str = Field(default_factory=lambda: f"{object['group']}/{object['version']}")
+#             kind: str = Field(default_factory=lambda: f"{object['kind']}")
+#             metadata: Metadata
+#
+#         class Factory(ModelFactory[FullResource]):
+#             __model__ = FullResource
+#             __use_defaults__ = True
+#
+#         instances = [Factory.build() for _ in range(n)]
+#         resources.extend(instances)
+#     return resources
+
+def resource_mocker(objects):
+
+    SystemFactory = create_factory(objects['system'])
+    ApplicationFactory = create_factory(objects['application'])
+    ComponentFactory = create_factory(objects['component'])
+
+    return component_mocker(SystemFactory, ApplicationFactory, ComponentFactory)
